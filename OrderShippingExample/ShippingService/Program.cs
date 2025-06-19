@@ -30,11 +30,20 @@ builder.Services.AddMassTransit((x) =>
                 //     x.ExchangeType = "fanout";
                 // });
                 
-                //bind Topic
-                e.Bind("order-place-topic-exchange", x =>
+                // //bind Topic
+                // e.Bind("order-place-topic-exchange", x =>
+                // {
+                //     x.RoutingKey = "order.*";
+                //     x.ExchangeType = "topic";
+                // });
+                
+                // bind Headers
+                e.Bind("order-place-header-exchange", x =>
                 {
-                    x.RoutingKey = "order.*";
-                    x.ExchangeType = "topic";
+                    x.ExchangeType = "headers";
+                    x.SetBindingArgument("department","shipping");
+                    x.SetBindingArgument("priority","high");
+                    x.SetBindingArgument("x-match","all");
                 });
             }
         );

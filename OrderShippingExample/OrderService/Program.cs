@@ -18,9 +18,13 @@ builder.Services.AddMassTransit((x) =>
         // cfg.Message<OrderPlaced>(x => x.SetEntityName("order-place-fanout-exchange"));
         // cfg.Publish<OrderPlaced>(x => x.ExchangeType = "fanout");
         
-        // untuk tipe exchange = topic (using pattern)
-        cfg.Message<OrderPlaced>(x => x.SetEntityName("order-place-topic-exchange"));
-        cfg.Publish<OrderPlaced>(x => x.ExchangeType = "topic");
+        // // untuk tipe exchange = topic (using pattern)
+        // cfg.Message<OrderPlaced>(x => x.SetEntityName("order-place-topic-exchange"));
+        // cfg.Publish<OrderPlaced>(x => x.ExchangeType = "topic");
+        
+        // untuk tipe exchange = headers (key value data)
+        cfg.Message<OrderPlaced>(x => x.SetEntityName("order-place-header-exchange"));
+        cfg.Publish<OrderPlaced>(x => x.ExchangeType = "headers");
     });
 });
 
@@ -49,11 +53,31 @@ app.MapPost("/orders", async (OrderRequest order, IBus bus) =>
     //     Console.WriteLine($"Fanout published {DateTime.Now}");
     // });
     
-    //conditional publish key, topic exchange
+    // //conditional publish key, topic exchange
+    // await bus.Publish(orderPlacedMessage, context =>
+    // {
+    //     context.SetRoutingKey(order.quantity > 10 ? "order.shipping": "order.regular.tracking");
+    //     Console.WriteLine($"Routing key set: {context.RoutingKey()}");
+    // });
+
+    //header exchange
+    var headers = new Dictionary<string, object>();
+
+    if (order.quantity > 10)
+    {
+        headers["department"] = "shipping";
+        headers["priority"] = "high";
+    }
+    else
+    {
+        headers["department"] = "tracking";
+        headers["priority"] = "low";
+    }
+    
     await bus.Publish(orderPlacedMessage, context =>
     {
-        context.SetRoutingKey(order.quantity > 10 ? "order.shipping": "order.regular.tracking");
-        Console.WriteLine($"Routing key set: {context.RoutingKey()}");
+        context.Headers.Set("department", headers["department"]);
+        context.Headers.Set("priority", headers["priority"]);
     });
     
     return Results.Created($"/orders/{order.orderId}", orderPlacedMessage);
