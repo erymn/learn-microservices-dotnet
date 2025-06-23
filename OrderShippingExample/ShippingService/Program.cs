@@ -17,34 +17,47 @@ builder.Services.AddMassTransit((x) =>
             {
                 e.Consumer<OrderPlacedConsumer>(context);
                 
-                // // bind direct exchanged
-                // e.Bind("order-placed-exchanged", x =>
-                // {
-                //     x.RoutingKey = "order.shipping";
-                //     x.ExchangeType = "direct";
-                // });
+                // bind direct exchanged
+                e.Bind("order-placed-exchanged", x =>
+                {
+                    x.RoutingKey = "order.created";
+                    x.ExchangeType = "direct";
+                });
+                
+                //// add message retry, untuk mengulang proses kirim data.
+                //e.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(5)));
+                
+                // //add message retry eksponensial untuk mengulang proses kirim data
+                // e.UseMessageRetry(r =>
+                //     r.Exponential(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(5)));
+
+                // add circuit breaker/kill switch
+                e.UseKillSwitch(options => options.SetActivationThreshold(10)
+                    .SetTripThreshold(0.15)
+                    .SetRestartTimeout(m:1));
+                
                 //
                 // //bind Fanout
                 // e.Bind("order-place-fanout-exchange", x =>
                 // {
                 //     x.ExchangeType = "fanout";
                 // });
-                
+
                 // //bind Topic
                 // e.Bind("order-place-topic-exchange", x =>
                 // {
                 //     x.RoutingKey = "order.*";
                 //     x.ExchangeType = "topic";
                 // });
-                
-                // bind Headers
-                e.Bind("order-place-header-exchange", x =>
-                {
-                    x.ExchangeType = "headers";
-                    x.SetBindingArgument("department","shipping");
-                    x.SetBindingArgument("priority","high");
-                    x.SetBindingArgument("x-match","all");
-                });
+
+                // // bind Headers
+                // e.Bind("order-place-header-exchange", x =>
+                // {
+                //     x.ExchangeType = "headers";
+                //     x.SetBindingArgument("department","shipping");
+                //     x.SetBindingArgument("priority","high");
+                //     x.SetBindingArgument("x-match","all");
+                // });
             }
         );
     });

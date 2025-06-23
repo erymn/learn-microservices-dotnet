@@ -10,9 +10,9 @@ builder.Services.AddMassTransit((x) =>
     {
         cfg.Host("rabbitmq://localhost/");       //beritahu MassTransit dimana letak server RabbitMQ
         
-        //// untuk tipe exchange = direct
-        // cfg.Message<OrderPlaced>(x => x.SetEntityName("order-placed-exchanged"));
-        // cfg.Publish<OrderPlaced>(x => x.ExchangeType = "direct");       // tipe exchange di rabbitmq
+        // untuk tipe exchange = direct
+         cfg.Message<OrderPlaced>(x => x.SetEntityName("order-placed-exchanged"));
+         cfg.Publish<OrderPlaced>(x => x.ExchangeType = "direct");       // tipe exchange di rabbitmq
         
         // // untuk tipe exchange = fanout
         // cfg.Message<OrderPlaced>(x => x.SetEntityName("order-place-fanout-exchange"));
@@ -22,9 +22,9 @@ builder.Services.AddMassTransit((x) =>
         // cfg.Message<OrderPlaced>(x => x.SetEntityName("order-place-topic-exchange"));
         // cfg.Publish<OrderPlaced>(x => x.ExchangeType = "topic");
         
-        // untuk tipe exchange = headers (key value data)
-        cfg.Message<OrderPlaced>(x => x.SetEntityName("order-place-header-exchange"));
-        cfg.Publish<OrderPlaced>(x => x.ExchangeType = "headers");
+        // // untuk tipe exchange = headers (key value data)
+        // cfg.Message<OrderPlaced>(x => x.SetEntityName("order-place-header-exchange"));
+        // cfg.Publish<OrderPlaced>(x => x.ExchangeType = "headers");
     });
 });
 
@@ -40,12 +40,12 @@ app.MapPost("/orders", async (OrderRequest order, IBus bus) =>
     var orderPlacedMessage = new OrderPlaced(order.orderId, order.quantity);
     //await bus.Publish(orderPlacedMessage);      // automatic exchange name
     
-    ////conditional publish key, direct exchange
-    // await bus.Publish(orderPlacedMessage, context =>
-    // {
-    //     context.SetRoutingKey(order.quantity > 10 ? "order.shipping": "order.tracking");
-    //     Console.WriteLine($"Routing key set: {context.RoutingKey()}");
-    // });
+    //conditional publish key, direct exchange
+     await bus.Publish(orderPlacedMessage, context =>
+     {
+         context.SetRoutingKey("order.created");
+         Console.WriteLine($"Routing key set: {context.RoutingKey()}");
+     });
 
     // // fanout exchange publish
     // await bus.Publish(orderPlacedMessage, context =>
@@ -60,25 +60,25 @@ app.MapPost("/orders", async (OrderRequest order, IBus bus) =>
     //     Console.WriteLine($"Routing key set: {context.RoutingKey()}");
     // });
 
-    //header exchange
-    var headers = new Dictionary<string, object>();
-
-    if (order.quantity > 10)
-    {
-        headers["department"] = "shipping";
-        headers["priority"] = "high";
-    }
-    else
-    {
-        headers["department"] = "tracking";
-        headers["priority"] = "low";
-    }
-    
-    await bus.Publish(orderPlacedMessage, context =>
-    {
-        context.Headers.Set("department", headers["department"]);
-        context.Headers.Set("priority", headers["priority"]);
-    });
+    // //header exchange
+    // var headers = new Dictionary<string, object>();
+    //
+    // if (order.quantity > 10)
+    // {
+    //     headers["department"] = "shipping";
+    //     headers["priority"] = "high";
+    // }
+    // else
+    // {
+    //     headers["department"] = "tracking";
+    //     headers["priority"] = "low";
+    // }
+    //
+    // await bus.Publish(orderPlacedMessage, context =>
+    // {
+    //     context.Headers.Set("department", headers["department"]);
+    //     context.Headers.Set("priority", headers["priority"]);
+    // });
     
     return Results.Created($"/orders/{order.orderId}", orderPlacedMessage);
 });
