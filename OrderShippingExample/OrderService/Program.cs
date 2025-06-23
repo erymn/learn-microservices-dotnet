@@ -10,9 +10,9 @@ builder.Services.AddMassTransit((x) =>
     {
         cfg.Host("rabbitmq://localhost/");       //beritahu MassTransit dimana letak server RabbitMQ
         
-        // untuk tipe exchange = direct
-         cfg.Message<OrderPlaced>(x => x.SetEntityName("order-placed-exchanged"));
-         cfg.Publish<OrderPlaced>(x => x.ExchangeType = "direct");       // tipe exchange di rabbitmq
+        // // untuk tipe exchange = direct
+        //  cfg.Message<OrderPlaced>(x => x.SetEntityName("order-placed-exchanged"));
+        //  cfg.Publish<OrderPlaced>(x => x.ExchangeType = "direct");       // tipe exchange di rabbitmq
         
         // // untuk tipe exchange = fanout
         // cfg.Message<OrderPlaced>(x => x.SetEntityName("order-place-fanout-exchange"));
@@ -38,14 +38,14 @@ var app = builder.Build();
 app.MapPost("/orders", async (OrderRequest order, IBus bus) =>
 {
     var orderPlacedMessage = new OrderPlaced(order.orderId, order.quantity);
-    //await bus.Publish(orderPlacedMessage);      // automatic exchange name
+    await bus.Publish(orderPlacedMessage);      // automatic exchange name
     
-    //conditional publish key, direct exchange
-     await bus.Publish(orderPlacedMessage, context =>
-     {
-         context.SetRoutingKey("order.created");
-         Console.WriteLine($"Routing key set: {context.RoutingKey()}");
-     });
+    // //conditional publish key, direct exchange
+    //  await bus.Publish(orderPlacedMessage, context =>
+    //  {
+    //      context.SetRoutingKey("order.created");
+    //      Console.WriteLine($"Routing key set: {context.RoutingKey()}");
+    //  });
 
     // // fanout exchange publish
     // await bus.Publish(orderPlacedMessage, context =>
